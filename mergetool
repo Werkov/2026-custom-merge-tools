@@ -5,6 +5,21 @@ import locale
 locale.setlocale(locale.LC_COLLATE, "en_US.UTF-8")
 
 parser = argparse.ArgumentParser(description="Merge sorted file")
+
+from tempfile import NamedTemporaryFile
+import shutil
+import subprocess
+import sys
+
+
+def merge(local, base, remote, labels=None):
+    cmd = ["git", "merge-file"]
+    if labels:
+        for label in labels:
+            cmd += [ "-L", label ]
+    return subprocess.call(cmd + [local, base, remote]) == 0
+
+
 parser.add_argument("--driver", action="store_true", help="Behave like merge driver (not merge tool)")
 parser.add_argument("local")
 parser.add_argument("base")
@@ -13,6 +28,13 @@ parser.add_argument("merged")
 
 args = parser.parse_args()
 result_path = args.local if args.driver else args.merged
+
+# fast path: try regular 3-way merge
+with NamedTemporaryFile() as tmp_local:
+    shutil.copy(args.local, tmp_local.name)
+    if merge(tmp_local.name, args.base, args.remote, args.labels):
+        shutil.copy(tmp_local.name, result_path)
+        sys.exit(0)
 
 local, base, remote = [
         set(open(s_path).readlines())
