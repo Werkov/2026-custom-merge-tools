@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+
+import argparse
+import locale
+locale.setlocale(locale.LC_COLLATE, "en_US.UTF-8")
+
+parser = argparse.ArgumentParser(description="Merge sorted file")
+parser.add_argument("local")
+parser.add_argument("base")
+parser.add_argument("remote")
+parser.add_argument("merged")
+
+args = parser.parse_args()
+result_path = args.merged
+
+local, base, remote = [
+        set(open(s_path).readlines())
+        for s_path in (args.local, args.base, args.remote,)
+    ]
+
+added = remote - base
+removed = base - remote
+
+merged = (local | added) - removed
+
+with open(result_path, "w") as f:
+    f.writelines(sorted(merged, key=locale.strxfrm))
