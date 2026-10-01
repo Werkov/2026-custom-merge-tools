@@ -5,13 +5,14 @@ import locale
 locale.setlocale(locale.LC_COLLATE, "en_US.UTF-8")
 
 parser = argparse.ArgumentParser(description="Merge sorted file")
+parser.add_argument("--driver", action="store_true", help="Behave like merge driver (not merge tool)")
 parser.add_argument("local")
 parser.add_argument("base")
 parser.add_argument("remote")
 parser.add_argument("merged")
 
 args = parser.parse_args()
-result_path = args.merged
+result_path = args.local if args.driver else args.merged
 
 local, base, remote = [
         set(open(s_path).readlines())
