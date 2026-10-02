@@ -17,3 +17,12 @@ Configuration to use the tool:
 # $GIT_DIR/info/attributes
 <pattern>   merge=cities-driver
 ```
+
+## Try it out in the repo
+
+```
+git worktree add -B merge-kll-driver ../tools-demo topic-k3
+cd ../tools-demo
+../2026-custom-merge-tools/setup-mergetool [--revert]
+git merge topic-l
+```

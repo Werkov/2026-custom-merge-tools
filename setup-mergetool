@@ -1,0 +1,52 @@
+#!/bin/sh
+# Install (or, with --revert, remove) the git config and gitattributes
+# entries needed to demo cities-mergetool / cities-driver.
+#
+# Run from inside the worktree you want to demo merges in, e.g.:
+#   /path/to/2026-custom-merge-tools/setup-mergetool
+#   /path/to/2026-custom-merge-tools/setup-mergetool --revert
+set -eu
+
+usage() {
+    echo "Usage: $0 [--revert]" >&2
+    exit 1
+}
+
+mode=install
+case "${1:-}" in
+    "") ;;
+    --revert) mode=revert ;;
+    *) usage ;;
+esac
+
+git rev-parse --git-dir >/dev/null 2>&1 || {
+    echo "error: not inside a git repository" >&2
+    exit 1
+}
+
+tool_dir=$(cd "$(dirname "$0")" && pwd)
+mergetool="$tool_dir/mergetool"
+attrs_file=$(git rev-parse --git-path info/attributes)
+attrs_line="cities merge=cities-driver"
+
+if [ "$mode" = install ]; then
+    git config --local mergetool.cities-mergetool.cmd "$mergetool \$LOCAL \$BASE \$REMOTE \$MERGED"
+    git config --local mergetool.cities-mergetool.trustExitCode true
+    git config --local merge.cities-driver.driver "$mergetool --driver %A %O %B %P"
+
+    mkdir -p "$(dirname "$attrs_file")"
+    touch "$attrs_file"
+    grep -qxF "$attrs_line" "$attrs_file" || echo "$attrs_line" >> "$attrs_file"
+
+    echo "Installed cities-mergetool/cities-driver config and attributes entry."
+else
+    git config --local --remove-section mergetool.cities-mergetool 2>/dev/null || true
+    git config --local --remove-section merge.cities-driver 2>/dev/null || true
+
+    if [ -f "$attrs_file" ]; then
+        grep -vxF "$attrs_line" "$attrs_file" > "$attrs_file.tmp" || true
+        mv "$attrs_file.tmp" "$attrs_file"
+    fi
+
+    echo "Removed cities-mergetool/cities-driver config and attributes entry."
+fi
